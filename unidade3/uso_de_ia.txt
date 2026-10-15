@@ -1,0 +1,4 @@
+Uso de IA generativa no Trabalho da Unidade 3
+
+Modelo: Claude Opus 5.5 (claude-opus-5-5), pelo Claude Code
+Uso: planejamento e apoio no código do notebook
