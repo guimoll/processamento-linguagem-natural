@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sobre o projeto · Triagem NHS</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { --fundo: #faf9f7; --papel: #fff; --texto: #1f1e1d; --suave: #6b6966; --borda: #e6e3de; --link: #2b59c3; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fundo); color: var(--texto); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  nav { position: sticky; top: 0; background: var(--fundo); border-bottom: 1px solid var(--borda); padding: 12px 16px; z-index: 1; }
+  nav a { display: inline-flex; gap: 6px; align-items: center; padding: 8px 14px; border-radius: 999px; background: var(--texto); color: #fff; text-decoration: none; font-size: .95rem; }
+  main { max-width: 820px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 1.8rem; line-height: 1.25; margin: 8px 0 4px; }
+  h2 { margin-top: 44px; font-size: 1.35rem; }
+  h3 { font-size: 1.05rem; margin-top: 24px; }
+  a { color: var(--link); }
+  .autor { color: var(--suave); margin-top: 0; }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; display: block; overflow-x: auto; background: var(--papel); border: 1px solid var(--borda); border-radius: 10px; }
+  th, td { border-bottom: 1px solid var(--borda); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #f3f1ed; }
+  img { max-width: 100%; height: auto; border: 1px solid var(--borda); border-radius: 10px; background: #fff; }
+  figure { margin: 16px 0; }
+  figcaption { font-size: .9rem; color: var(--suave); }
+  code { background: #efece7; padding: 1px 5px; border-radius: 4px; font-size: .9em; }
+</style>
+</head>
+<body>
+<nav><a href="./">← Voltar ao chat</a></nav>
+<main>
+<h1>Triagem de sintomas com o corpus NHS Health A-Z</h1>
+<p class="autor">Guilherme Moll · Processamento de Linguagem Natural 2026/2 · FURB · Trabalho da Unidade 4, modalidade B ·
+  <a href="https://github.com/guimoll/processamento-linguagem-natural">repositório</a></p>
+<p>Chat que recebe a descrição de um sintoma e devolve o nível de urgência e os trechos do NHS, o serviço de saúde do Reino Unido, que tratam do assunto.
+  O nível vem de um classificador treinado nos textos do NHS e, com uma chave do Gemini, um LLM traduz a mensagem e escreve a resposta a partir dos trechos encontrados.
+  Não é aconselhamento médico.</p>
+
+<h2>Como usar</h2>
+<ol>
+  <li>Abra o <a href="./">chat</a> e confirme o aviso.</li>
+  <li>Cole uma chave gratuita da API do Gemini, criada no <a href="https://aistudio.google.com/apikey">Google AI Studio</a>.
+    A chave fica só nesta aba (<code>sessionStorage</code>) e vai do navegador direto para a API do Google, sem servidor no meio, e o uso conta na cota da chave.</li>
+  <li>Em cada resposta, "O que o modelo fez" mostra as probabilidades e os trechos recuperados.</li>
+</ol>
+
+<h2>Problema</h2>
+<p>Quem sente um sintoma costuma procurar na internet sem saber se precisa de pronto-socorro, de consulta ou se pode esperar. Para cada condição o NHS publica
+  "care cards" que separam os sinais por urgência, emergência (999 ou A&amp;E), urgente (NHS 111), não urgente (clínico geral) e autocuidado.
+  O projeto da Unidade 1 usa esses textos para estimar a urgência de uma mensagem livre e mostrar a fonte.</p>
+
+<h2>Dados e metodologia</h2>
+<h3>Corpus</h3>
+<p>O corpus da Unidade 1 e da Etapa Prática 1 tem 24.159 passagens das páginas do <a href="https://www.nhs.uk/health-a-to-z/">NHS Health A to Z</a>, em inglês, extraídas do JSON-LD e do HTML.
+  Depois da limpeza e da remoção de duplicatas ficam 18 mil passagens, e as que vêm de care cards trazem o nível de urgência dado pelo NHS, usado como rótulo.</p>
+<h3>Unidade 3</h3>
+<p>BoW, TF-IDF, Word2Vec e BERT foram comparados em clusterização, busca e classificação numa amostra de 4.000 passagens.
+  O TF-IDF com Regressão Logística teve o melhor F1 macro (0,914) e foi o único que separou os clusters por urgência.</p>
+<h3>Unidade 4</h3>
+<ol>
+  <li>O Gemini traduz a mensagem para inglês, com saída em JSON.</li>
+  <li>O TF-IDF + Regressão Logística da Unidade 3 dá a probabilidade de cada nível, em JavaScript com os pesos exportados do scikit-learn.</li>
+  <li>Uma busca TF-IDF por cosseno traz os 5 trechos mais próximos entre as 18 mil passagens, a parte de recuperação do RAG.</li>
+  <li>O Gemini recebe a mensagem, o nível do classificador e os trechos, e responde em JSON com nível, texto e fontes usadas, só com base nos trechos.</li>
+  <li>Quando o classificador e o Gemini discordam, a página mostra o nível mais grave, regra proposta na Unidade 3 porque o classificador rebaixava emergências.</li>
+</ol>
+
+<h2>Resultados</h2>
+<p>O conjunto de teste é o da Unidade 3, 478 linhas de care cards (20% estratificado), 70 delas de emergência, e os trechos do teste ficaram fora do índice da busca.
+  O classificador foi treinado de novo com um tokenizador que o JavaScript repete e o F1 ficou igual ao da Unidade 3 (0,914).</p>
+<table>
+  <tr><th>Abordagem</th><th>Acurácia</th><th>F1 macro</th><th>Recall de emergência</th><th>Emergências rebaixadas</th></tr>
+  <tr><td>TF-IDF + Regressão Logística</td><td><strong>0,921</strong></td><td><strong>0,914</strong></td><td>0,857</td><td>10 de 70</td></tr>
+  <tr><td>Gemini sem exemplos</td><td>0,891</td><td>0,881</td><td>0,943</td><td>4 de 70</td></tr>
+  <tr><td>Gemini + RAG</td><td>0,847</td><td>0,847</td><td>0,914</td><td>6 de 70</td></tr>
+  <tr><td>Mais grave entre a Regressão Logística e o Gemini + RAG, usado no site</td><td>0,874</td><td>0,875</td><td><strong>0,957</strong></td><td><strong>3 de 70</strong></td></tr>
+</table>
+<figure>
+  <img src="matrizes_unidade4.png" alt="Matrizes de confusão das quatro abordagens no conjunto de teste">
+  <figcaption>Matrizes de confusão no conjunto de teste, com o nível real nas linhas e o previsto nas colunas</figcaption>
+</figure>
+<h3>Frases novas</h3>
+<p>Acertos nas 8 frases em inglês da Unidade 3 e em 8 frases em português.</p>
+<table>
+  <tr><th></th><th>Regressão Logística sem tradução</th><th>Regressão Logística após tradução pelo Gemini</th><th>Gemini + RAG</th><th>Mais grave</th></tr>
+  <tr><td>Inglês</td><td>6 de 8</td><td>6 de 8</td><td>7 de 8</td><td>7 de 8</td></tr>
+  <tr><td>Português</td><td>2 de 8</td><td>6 de 8</td><td>8 de 8</td><td>8 de 8</td></tr>
+</table>
+<p>Frases em português com a tradução do Gemini.</p>
+<table>
+  <tr><th>Entrada</th><th>Tradução</th><th>Esperado</th><th>Regressão Logística</th><th>Gemini + RAG</th></tr>
+  <tr><td>estou com uma dor forte no peito que vai para o braço esquerdo</td><td>I have severe chest pain that goes to my left arm</td><td>Emergência</td><td>Emergência</td><td>Emergência</td></tr>
+  <tr><td>meu filho está com febre alta e manchas que não somem quando aperto um copo nelas</td><td>my son has a high fever and spots that do not fade when I press a glass against them</td><td>Emergência</td><td>Autocuidado</td><td>Emergência</td></tr>
+  <tr><td>estou vomitando sangue</td><td>I am vomiting blood</td><td>Emergência</td><td>Emergência</td><td>Emergência</td></tr>
+  <tr><td>minha perna está inchada, vermelha e doendo cada vez mais</td><td>my leg is swollen, red, and hurting more and more</td><td>Urgente</td><td>Não urgente</td><td>Urgente</td></tr>
+  <tr><td>tenho tosse há mais de três semanas</td><td>I have had a cough for more than three weeks</td><td>Não urgente</td><td>Não urgente</td><td>Não urgente</td></tr>
+  <tr><td>tenho me sentido triste há algumas semanas e não melhora</td><td>I have been feeling sad for a few weeks and it's not getting better.</td><td>Não urgente</td><td>Não urgente</td><td>Não urgente</td></tr>
+  <tr><td>estou com dor de garganta há dois dias, mas consigo comer e beber</td><td>I've had a sore throat for two days, but I can eat and drink</td><td>Autocuidado</td><td>Autocuidado</td><td>Autocuidado</td></tr>
+  <tr><td>torci o tornozelo, está um pouco inchado mas consigo andar</td><td>I sprained my ankle, it's a bit swollen but I can walk</td><td>Autocuidado</td><td>Autocuidado</td><td>Autocuidado</td></tr>
+</table>
+
+<h2>Técnicas da Unidade 4</h2>
+<table>
+  <tr><th>Tecnologia ou abordagem</th><th>Usada?</th><th>Aplicação ou justificativa</th></tr>
+  <tr><td>LLMs e modelos de linguagem</td><td>Sim</td><td>Gemini (<code>gemini-3.5-flash-lite</code>, API) traduz a mensagem, classifica e escreve a resposta</td></tr>
+  <tr><td>Prompt engineering e saídas estruturadas</td><td>Sim</td><td>Prompt com a definição dos 4 níveis do NHS e esquema JSON nas duas chamadas, uma para a tradução e outra para nível, resposta e fontes</td></tr>
+  <tr><td>RAG e recuperação de informações</td><td>Sim</td><td>Busca TF-IDF nas 18 mil passagens, os 5 trechos mais próximos vão no prompt e a resposta cita as páginas</td></tr>
+  <tr><td>Agentes e integração com ferramentas</td><td>Não</td><td>O fluxo é fixo (traduzir, classificar, buscar, responder), sem decisão sobre qual ferramenta chamar</td></tr>
+  <tr><td>Modelos locais ou quantizados</td><td>Não</td><td>O classificador roda no navegador, mas é TF-IDF com Regressão Logística, não um modelo de linguagem</td></tr>
+  <tr><td>Processamento multimodal</td><td>Não</td><td>O corpus é só texto</td></tr>
+  <tr><td>Outras técnicas avançadas</td><td>Não</td><td></td></tr>
+</table>
+
+<h2>Avaliação</h2>
+<h3>1. Em que medida os objetivos foram alcançados?</h3>
+<p>O objetivo da Unidade 1 era um assistente que recebe a descrição de um sintoma, estima a urgência e traz o que o NHS publica citando a fonte, e o chat faz isso em português para quem tem uma chave do Gemini.
+  Não houve teste com usuários, e os serviços citados nos trechos continuam sendo os do Reino Unido, adaptados para o Brasil só pelo prompt.</p>
+<h3>2. Quais técnicas foram mais adequadas?</h3>
+<p>No conjunto de teste o TF-IDF + Regressão Logística teve o melhor F1 macro (0,914). Em triagem o erro mais grave é rebaixar uma emergência, e o Gemini rebaixou menos (4 de 70, contra 10 de 70 da Regressão Logística).
+  A regra do mais grave rebaixou só 3 emergências com F1 menor (0,875), porque sobe o nível de casos menos graves, e é a regra usada no site.</p>
+<h3>3. Os LLMs trouxeram melhorias ou novas possibilidades?</h3>
+<p>Sim. A Regressão Logística acertou 2 de 8 frases em português e 6 de 8 depois da tradução pelo Gemini. Nas frases em inglês fora do estilo do NHS o Gemini + RAG acertou 7 de 8,
+  como a mancha que não some sob o copo, que a Regressão Logística chamou de autocuidado. A resposta em texto com as fontes também não existia antes.</p>
+<p>O RAG não melhorou a classificação, no teste o Gemini + RAG (F1 0,847) ficou abaixo do Gemini sem exemplos (0,881).
+  O primeiro trecho recuperado tem o mesmo nível do texto em só 48% dos casos, já que o mesmo sintoma aparece com níveis diferentes em páginas diferentes (falta de ar é emergência numa página e urgente em outra).
+  Quando esse trecho vem com o nível errado o Gemini + RAG acerta 72%, contra 85% sem os trechos. No site o RAG serve para basear a resposta e citar as páginas, e o nível final é o mais grave entre o classificador e o Gemini.</p>
+<h3>4. Quais são as principais limitações?</h3>
+<p>Os rótulos e o teste são linhas de care cards escritas pelo NHS, mensagens reais são mais longas e vagas e o teste com elas ficou em 16 frases escritas por mim.
+  O Gemini é acessado por API e depende de chave, de cota e da versão do modelo, e na avaliação a temperatura 0 não garante a mesma resposta sempre.
+  O corpus é do Reino Unido e em inglês, e o site baixa 8,7 MB de trechos na primeira visita.</p>
+<h3>5. Como a qualidade foi verificada?</h3>
+<ul>
+  <li>Acurácia, F1 macro e recall de emergência nos 478 textos de teste, com as matrizes de confusão, e os trechos do teste fora do índice da busca.</li>
+  <li>16 frases novas, em inglês e português, com o nível esperado definido antes de rodar.</li>
+  <li>As probabilidades do classificador em JavaScript são iguais às do scikit-learn até a 4ª casa nas frases de conferência do notebook.</li>
+  <li>As respostas do Gemini usadas na avaliação estão salvas em <code>cache_gemini.json</code>.</li>
+</ul>
+<h3>6. Aprimoramentos futuros</h3>
+<ul>
+  <li>Busca por embeddings de frases com um modelo treinado para similaridade, já que o BERT sem ajuste da Unidade 3 não serviu.</li>
+  <li>Trechos da mesma condição agrupados por nível no prompt, no lugar dos mais parecidos soltos.</li>
+  <li>Um NER biomédico para reconhecer sintomas na mensagem.</li>
+  <li>Teste com mensagens reais, revisadas por um profissional de saúde.</li>
+</ul>
+
+<h2>Limitações e custos</h2>
+<ul>
+  <li>Os serviços citados nos trechos (999, 111, GP) são do Reino Unido, e o prompt pede ao Gemini que troque por SAMU 192, UPA e posto de saúde.</li>
+  <li>O classificador só conhece inglês, por isso a mensagem passa antes pela tradução do Gemini, e sem a chave do Gemini o chat não responde.</li>
+  <li>Os rótulos são linhas curtas de care cards escritas pelo NHS, e mensagens de pacientes são mais longas e vagas.</li>
+  <li>A avaliação do Gemini usou o conjunto de teste e 16 frases escritas por mim, sem teste com usuários.</li>
+  <li>O Gemini é chamado duas vezes por mensagem, na cota da chave de quem usa, e o <code>flash-lite</code> tem cota gratuita no AI Studio.</li>
+</ul>
+
+<h2>Referências e informações técnicas</h2>
+<ul>
+  <li>Dados: <a href="https://www.nhs.uk/health-a-to-z/">NHS.UK Health A to Z</a>, conteúdo sob Open Government Licence v3.0.</li>
+  <li>Python: scikit-learn 1.9 (TF-IDF, Regressão Logística, métricas), NLTK 3.9 (stopwords), pandas, matplotlib. Unidade 3 também com gensim, transformers (<code>bert-base-uncased</code>), spaCy e VADER.</li>
+  <li>LLM: Google Gemini <code>gemini-3.5-flash-lite</code> pela API REST <code>generateContent</code>, temperatura 0, <code>responseSchema</code> em JSON.</li>
+  <li>Site: HTML e JavaScript sem bibliotecas, publicado no GitHub Pages.</li>
+  <li>Código e notebooks: <a href="https://github.com/guimoll/processamento-linguagem-natural/tree/main/unidade4">unidade4</a> no repositório.</li>
+  <li>Uso de IA generativa: Claude Opus 5.5 (Anthropic), pelo Claude Code, no código do notebook e do site, em <a href="https://github.com/guimoll/processamento-linguagem-natural/blob/main/unidade4/uso_de_ia.txt">uso_de_ia.txt</a>.</li>
+</ul>
+</main>
+</body>
+</html>

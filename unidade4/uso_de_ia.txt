@@ -1,0 +1,6 @@
+Uso de IA generativa no Trabalho da Unidade 4
+
+Modelo: Claude Opus 5.5 (claude-opus-5-5), Anthropic, pelo Claude Code
+Usos: código do notebook unidade4.ipynb e do site (index.html, app.js)
+LLM usado no processamento (não na construção): Google Gemini gemini-3.5-flash-lite, API REST,
+temperatura 0, saída JSON com responseSchema. Prompts no notebook (seção 3) e em app.js (PROMPT_RESPOSTA).

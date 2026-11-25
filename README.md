@@ -7,6 +7,14 @@ Z](https://www.nhs.uk/health-a-to-z/)
 
 
 
+## Etapas
+
+| | |
+|---|---|
+| Etapa Prática 1 | esta pasta: coleta e preparação do corpus |
+| [Unidade 3](unidade3/) | representações, clusters, busca, classificação, sentimento, NER e relações |
+| [Unidade 4](unidade4/) | chat de triagem com LLM e RAG: **https://guimoll.github.io/processamento-linguagem-natural/unidade4/** |
+
 ## Arquivos
 
 | | |

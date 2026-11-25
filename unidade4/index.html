@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Triagem NHS</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { --fundo: #faf9f7; --papel: #fff; --texto: #1f1e1d; --suave: #6b6966; --borda: #e6e3de; --bolha: #efece7; --link: #2b59c3;
+          --emergency: #b42318; --urgent: #b54708; --non_urgent: #175cd3; --self_care: #067647; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--fundo); color: var(--texto); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+         display: flex; flex-direction: column; }
+  a { color: var(--link); }
+  button { font: inherit; color: inherit; cursor: pointer; }
+
+  header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px; }
+  .marca { font-weight: 650; white-space: nowrap; }
+  .marca small { font-weight: 400; color: var(--suave); margin-left: 6px; }
+  .acoes { display: flex; gap: 8px; }
+  .botao { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--borda);
+           background: var(--papel); text-decoration: none; color: var(--texto); font-size: .92rem; white-space: nowrap; }
+  .botao.escuro { background: var(--texto); color: #fff; border-color: var(--texto); }
+  .ponto { width: 8px; height: 8px; border-radius: 50%; background: #c4c1bb; }
+  .ponto.on { background: #12b76a; }
+
+  #rolagem { flex: 1; overflow-y: auto; }
+  .coluna { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+  #inicio { padding-top: 14vh; text-align: center; }
+  #inicio h1 { font-size: 1.9rem; font-weight: 600; margin: 0 0 28px; }
+  .sugestoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; text-align: left; }
+  .sugestao { text-align: left; padding: 12px 14px; border: 1px solid var(--borda); border-radius: 14px; background: var(--papel); font-size: .93rem; }
+  .sugestao:hover, .botao:hover { border-color: #c9c5be; }
+
+  #conversa { display: flex; flex-direction: column; gap: 22px; padding: 24px 0 8px; }
+  .usuario { align-self: flex-end; max-width: 80%; background: var(--bolha); padding: 10px 16px; border-radius: 20px; white-space: pre-wrap; }
+  .bot p { margin: 6px 0; }
+  .nivel { display: inline-block; font-weight: 650; font-size: .9rem; padding: 3px 12px; border-radius: 10px; background: #f2f0ec; }
+  .nivel.emergency { color: var(--emergency); background: #fef3f2; } .nivel.urgent { color: var(--urgent); background: #fffaeb; }
+  .nivel.non_urgent { color: var(--non_urgent); background: #eff8ff; } .nivel.self_care { color: var(--self_care); background: #ecfdf3; }
+  .fontes { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+  .fontes a { font-size: .85rem; padding: 3px 10px; border: 1px solid var(--borda); border-radius: 999px; background: var(--papel); text-decoration: none; }
+  details { font-size: .88rem; color: var(--suave); margin-top: 6px; }
+  summary { cursor: pointer; }
+  .pensando span { display: inline-block; width: 7px; height: 7px; margin-right: 4px; border-radius: 50%; background: #a8a49d; animation: pulo 1s infinite; }
+  .pensando span:nth-child(2) { animation-delay: .15s; } .pensando span:nth-child(3) { animation-delay: .3s; }
+  @keyframes pulo { 0%, 60%, 100% { opacity: .3; } 30% { opacity: 1; } }
+
+  footer { padding: 8px 0 14px; }
+  #form { display: flex; align-items: flex-end; gap: 8px; background: var(--papel); border: 1px solid var(--borda); border-radius: 26px;
+          padding: 8px 8px 8px 18px; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+  #mensagem { flex: 1; border: 0; outline: 0; resize: none; font: inherit; background: transparent; padding: 6px 0; max-height: 160px; }
+  #enviar { width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--texto); color: #fff; display: grid; place-items: center; flex: none; }
+  #enviar:disabled { background: #d5d2cc; cursor: default; }
+  .erro { border: 1px solid #f1d9b5; background: #fffaf2; border-radius: 14px; padding: 12px 16px; }
+  .caixa-chave { display: flex; gap: 8px; margin-top: 10px; }
+  .caixa-chave input { flex: 1; padding: 9px 12px; border: 1px solid var(--borda); border-radius: 10px; font: inherit; background: #fff; }
+  .rodape { text-align: center; font-size: .78rem; color: var(--suave); margin: 8px 0 0; }
+
+  dialog { border: 0; border-radius: 18px; padding: 24px; max-width: 460px; width: calc(100% - 32px); box-shadow: 0 10px 40px rgba(0,0,0,.2); color: var(--texto); }
+  dialog::backdrop { background: rgba(30,28,25,.45); }
+  dialog h2 { margin: 0 0 8px; font-size: 1.25rem; }
+  dialog label { display: flex; gap: 8px; align-items: flex-start; margin: 14px 0; }
+  dialog input[type=password] { width: 100%; padding: 10px 12px; border: 1px solid var(--borda); border-radius: 10px; font: inherit; }
+  .linha { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  .linha .botao:disabled { opacity: .45; cursor: default; }
+  @media (max-width: 520px) { .marca small { display: none; } #inicio { padding-top: 6vh; } .botao { padding: 7px 11px; font-size: .86rem; } header { padding: 10px 12px; } .longo { display: none; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="marca">Triagem NHS<small>PLN 2026/2 · Guilherme Moll</small></div>
+  <div class="acoes">
+    <button class="botao" id="abrir-chave" type="button"><span class="ponto" id="ponto"></span>Chave<span class="longo"> do Gemini</span></button>
+    <a class="botao escuro" href="sobre.html">Sobre o projeto</a>
+  </div>
+</header>
+
+<div id="rolagem">
+  <div class="coluna">
+    <section id="inicio">
+      <h1>O que você está sentindo?</h1>
+      <div class="sugestoes">
+        <button class="sugestao" type="button">estou com uma dor forte no peito que vai para o braço esquerdo</button>
+        <button class="sugestao" type="button">tenho tosse há mais de três semanas</button>
+        <button class="sugestao" type="button">torci o tornozelo, está um pouco inchado mas consigo andar</button>
+        <button class="sugestao" type="button">I have a sore throat but I can eat and drink</button>
+      </div>
+    </section>
+    <div id="conversa" aria-live="polite"></div>
+  </div>
+</div>
+
+<footer>
+  <div class="coluna">
+    <form id="form">
+      <textarea id="mensagem" rows="1" aria-label="Mensagem" placeholder="Carregando o modelo…"></textarea>
+      <button id="enviar" disabled aria-label="Enviar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+      </button>
+    </form>
+    <p class="rodape">Não é aconselhamento médico. Em emergência, ligue 192 (SAMU).</p>
+  </div>
+</footer>
+
+<dialog id="aviso">
+  <h2>Antes de começar</h2>
+  <p>Este chat é um trabalho de faculdade de Processamento de Linguagem Natural. Ele estima a urgência de um sintoma a partir de textos do NHS, o serviço de saúde do Reino Unido, e pode errar.</p>
+  <p><strong>Não é aconselhamento médico.</strong> Em emergência, ligue 192 (SAMU) ou vá ao pronto-socorro.</p>
+  <label><input type="checkbox" id="aceite"> Entendi que isto não é aconselhamento médico</label>
+  <div class="linha"><button class="botao escuro" id="comecar" type="button" disabled>Começar</button></div>
+</dialog>
+
+<dialog id="dlg-chave">
+  <h2>Chave do Gemini</h2>
+  <p>O chat precisa dela para traduzir a mensagem e escrever a resposta.</p>
+  <p>A chave fica só nesta aba e vai direto para a API do Google. Crie uma gratuita no <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>.</p>
+  <input type="password" id="chave" autocomplete="off" placeholder="AIza…" aria-label="Chave da API do Gemini">
+  <div class="linha">
+    <button class="botao" id="remover-chave" type="button">Remover</button>
+    <button class="botao escuro" id="salvar-chave" type="button">Salvar</button>
+  </div>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>
