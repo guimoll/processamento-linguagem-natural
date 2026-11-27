@@ -22,6 +22,11 @@
   .botao { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--borda);
            background: var(--papel); text-decoration: none; color: var(--texto); font-size: .92rem; white-space: nowrap; }
   .botao.escuro { background: var(--texto); color: #fff; border-color: var(--texto); }
+  .modos { display: inline-flex; padding: 3px; border: 1px solid var(--borda); border-radius: 999px; background: var(--papel); }
+  .modos button { border: 0; background: none; padding: 4px 12px; border-radius: 999px; font-size: .92rem; color: var(--suave); white-space: nowrap; }
+  .modos button[aria-pressed=true] { background: var(--texto); color: #fff; }
+  .modos button:disabled, .botao:disabled { cursor: default; }
+  #contador { margin-left: 4px; opacity: .7; font-variant-numeric: tabular-nums; }
   .ponto { width: 8px; height: 8px; border-radius: 50%; background: #c4c1bb; }
   .ponto.on { background: #12b76a; }
 
@@ -72,6 +77,11 @@
 <header>
   <div class="marca">Triagem NHS<small>PLN 2026/2 · Guilherme Moll</small></div>
   <div class="acoes">
+    <div class="modos" role="group" aria-label="Modo do chat">
+      <button type="button" data-modo="rapido" title="Cada mensagem é respondida sozinha">Rápido</button>
+      <button type="button" data-modo="memoria" title="Lembra as mensagens anteriores, até 10 por conversa">Com memória<span id="contador"></span></button>
+    </div>
+    <button class="botao" id="nova" type="button">Nova conversa</button>
     <button class="botao" id="abrir-chave" type="button"><span class="ponto" id="ponto"></span>Chave<span class="longo"> do Gemini</span></button>
     <a class="botao escuro" href="sobre.html">Sobre o projeto</a>
   </div>

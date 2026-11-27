@@ -49,13 +49,21 @@ async function gemini(prompt, esquema, tentativa = 0) {
   return JSON.parse(d.candidates[0].content.parts[0].text);
 }
 
-const PROMPT_RESPOSTA = (msg, nivel, trechos) => `You are a symptom triage demo for a university NLP project. You are not a doctor.
+const LIMITE = 10;
+const historico = [];
+let modo = sessionStorage.getItem("modo") || "rapido", pronto = false, ocupado = false;
+
+const PROMPT_TRADUCAO = (msg, anteriores) => anteriores.length
+  ? `Earlier messages from the same user:\n${anteriores.map((h) => h.msg).join("\n")}\n\nRewrite the user's latest message as one self-contained description of their health symptom in plain English, filling in from the earlier messages what it leaves out.\n\nLatest message: ${msg}`
+  : `Translate this message about a health symptom to plain English. If it is already in English, return it unchanged.\n\n${msg}`;
+
+const PROMPT_RESPOSTA = (msg, nivel, trechos, anteriores) => `You are a symptom triage demo for a university NLP project. You are not a doctor.
 Urgency levels used by the NHS:
 - emergency: life-threatening, call 999 or go to A&E now
 - urgent: needs help today, call NHS 111 or get an urgent GP appointment
 - non_urgent: see a GP, not urgent
 - self_care: can be treated at home or with a pharmacist
-
+${anteriores.length ? `\nEarlier in this conversation:\n${anteriores.map((h) => `User: ${h.msg}\nYou: ${h.answer}`).join("\n")}\n` : ""}
 User message: ${msg}
 Level predicted by the project's classifier: ${nivel}
 NHS passages retrieved by the project's search:
@@ -98,14 +106,17 @@ function pedirChave(msg, erro) {
 async function enviar(msg, repetir = false) {
   if (!repetir) adicionar("usuario", esc(msg));
   if (!sessionStorage.getItem("chave")) return pedirChave(msg);
+  ocupado = true;
+  atualizar();
+  const anteriores = modo === "memoria" ? historico : [];
   const resp = adicionar("bot", '<p class="pensando" aria-label="Processando"><span></span><span></span><span></span></p>');
   try {
-    const en = (await gemini(`Translate this message about a health symptom to plain English. If it is already in English, return it unchanged.\n\n${msg}`,
-      { type: "OBJECT", required: ["en"], properties: { en: { type: "STRING" } } })).en;
+    const en = (await gemini(PROMPT_TRADUCAO(msg, anteriores),{ type: "OBJECT", required: ["en"], properties: { en: { type: "STRING" } } })).en;
     const probs = classificar(en);
     const nivelModelo = GRAVIDADE.reduce((a, b) => (probs[b] > probs[a] ? b : a));
     const trechos = buscar(en);
-    const r = await gemini(PROMPT_RESPOSTA(msg, nivelModelo, trechos), ESQUEMA_RESPOSTA);
+    const r = await gemini(PROMPT_RESPOSTA(msg, nivelModelo, trechos, anteriores), ESQUEMA_RESPOSTA);
+    if (modo === "memoria") historico.push({ msg, answer: r.answer });
     const nivelGemini = r.level;
     const nivel = GRAVIDADE.indexOf(r.level) > GRAVIDADE.indexOf(nivelModelo) ? r.level : nivelModelo;
     const texto = `<p>${esc(r.answer)}</p>`;
@@ -128,9 +139,38 @@ async function enviar(msg, repetir = false) {
       return pedirChave(msg, e.message);
     }
     resp.textContent = "Erro: " + e.message;
+  } finally {
+    ocupado = false;
+    atualizar();
   }
   $("rolagem").scrollTop = $("rolagem").scrollHeight;
 }
+
+function atualizar() {
+  const cheio = modo === "memoria" && historico.length >= LIMITE;
+  document.querySelectorAll("[data-modo]").forEach((b) => { b.setAttribute("aria-pressed", b.dataset.modo === modo); b.disabled = ocupado; });
+  $("nova").disabled = ocupado;
+  $("contador").textContent = `${historico.length}/${LIMITE}`;
+  $("mensagem").disabled = cheio;
+  $("enviar").disabled = !pronto || ocupado || cheio;
+  $("mensagem").placeholder = !pronto ? "Carregando o modelo…" : cheio ? `Limite de ${LIMITE} mensagens. Comece uma nova conversa.` : "Descreva o sintoma";
+}
+
+function novaConversa() {
+  historico.length = 0;
+  $("conversa").replaceChildren();
+  $("inicio").hidden = false;
+  atualizar();
+  $("mensagem").focus();
+}
+
+$("nova").addEventListener("click", novaConversa);
+document.querySelectorAll("[data-modo]").forEach((b) => b.addEventListener("click", () => {
+  if (b.dataset.modo === modo) return;
+  modo = b.dataset.modo;
+  sessionStorage.setItem("modo", modo);
+  novaConversa();
+}));
 
 async function iniciar() {
   [modelo, docs] = await Promise.all(["modelo.json", "trechos.json"].map((a) => fetch(a).then((r) => r.json())));
@@ -143,8 +183,8 @@ async function iniciar() {
   }
   idfDocs = { indice, idf: df.map((n) => Math.log((1 + docs.length) / (1 + n)) + 1) };
   vetDocs = toks.map((ts) => tfidf(ts, indice, idfDocs.idf));
-  $("enviar").disabled = false;
-  $("mensagem").placeholder = "Descreva o sintoma";
+  pronto = true;
+  atualizar();
 }
 
 if (sessionStorage.getItem("aceite") !== "1") $("aviso").showModal();
@@ -161,6 +201,7 @@ $("salvar-chave").addEventListener("click", () => {
 });
 $("remover-chave").addEventListener("click", () => { sessionStorage.removeItem("chave"); marcarChave(); $("dlg-chave").close(); });
 marcarChave();
+atualizar();
 
 function submeter() {
   const msg = $("mensagem").value.trim();
