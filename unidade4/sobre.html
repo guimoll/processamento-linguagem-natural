@@ -41,6 +41,7 @@
   <li>Abra o <a href="./">chat</a> e confirme o aviso.</li>
   <li>Cole uma chave gratuita da API do Gemini, criada no <a href="https://aistudio.google.com/apikey">Google AI Studio</a>.
     A chave fica só nesta aba (<code>sessionStorage</code>) e vai do navegador direto para a API do Google, sem servidor no meio, e o uso conta na cota da chave.</li>
+  <li>Escolha o modo no topo: <strong>Rápido</strong> responde cada mensagem sozinha, e <strong>Com memória</strong> lembra a conversa, até 10 mensagens.</li>
   <li>Em cada resposta, "O que o modelo fez" mostra as probabilidades e os trechos recuperados.</li>
 </ol>
 
@@ -64,6 +65,7 @@
   <li>O Gemini recebe a mensagem, o nível do classificador e os trechos, e responde em JSON com nível, texto e fontes usadas, só com base nos trechos.</li>
   <li>Quando o classificador e o Gemini discordam, a página mostra o nível mais grave, regra proposta na Unidade 3 porque o classificador rebaixava emergências.</li>
 </ol>
+<p>No modo Rápido, cada mensagem passa sozinha por esse fluxo, e é o modo usado na avaliação. No modo Com memória, o primeiro passo reescreve a mensagem em inglês completando com as mensagens anteriores, e a resposta do Gemini também recebe a conversa. Assim, "quais remédios podem ajudar?" depois de "estou com dor na perna" chega à busca e ao classificador como "What medications can help with leg pain?".</p>
 
 <h2>Resultados</h2>
 <p>O conjunto de teste é o da Unidade 3, 478 linhas de care cards (20% estratificado), 70 delas de emergência, e os trechos do teste ficaram fora do índice da busca.
